@@ -1,21 +1,23 @@
+rm(list=ls(all=TRUE))
+
 Sys.setlocale(local = "Arabic_Saudi Arabia.1256")
 
 require(openxlsx)
 require(dplyr)
 require(rpivotTable)
 
-x <- NULL 
+x<<- NULL
 
 run <- function(month, week) {
   week = paste("W", week , sep = "")
-  folder <- paste("TimeSheets", month, week , sep = "/")
+  folder <<- paste("TimeSheets", month, week , sep = "/")
   
   files <- list.files(path = folder)
-  
+  x<<- NULL
   for (f in files) {
     filePath <- paste(folder, f, sep = "/")
     d <-  read.xlsx(filePath, detectDates = TRUE)
-    x <<- merge(x, d, all = TRUE)
+    x <<- rbind( x,d)
   }
   colnames(x) <<-
     c(
@@ -42,17 +44,31 @@ run <- function(month, week) {
   
   pie(
     GroupByEmp$Hours,
-    labels = GroupByEmp$EmpName,
+    labels = GroupByEmp$Hours,
     col = rainbow(length(GroupByEmp$EmpName)),
     main = "Total Hours per Employee"
   )
+  legend("bottomleft",
+         legend =  GroupByEmp$EmpName, cex = 0.7,
+         fill = rainbow(length(GroupByEmp$EmpName)))
+  
+  
   
 } 
 
 chart <- function(c)
 {
+  if (is.null(x))
+  {
+    message("Please call Run function first.")
+    returnValue()
+  }
+  
   switch (
     c,
+    "0" = {
+      rpivotTable(x[1:9])
+    },
     "1" = pie(
       GroupByEmp$Hours,
       labels = GroupByEmp$EmpName,
@@ -97,4 +113,8 @@ chart <- function(c)
     
   )
   
+}
+Export = function()
+{
+  write.csv(x, paste(folder, "Exported","timeSheet.csv" , sep = "/"))
 }
