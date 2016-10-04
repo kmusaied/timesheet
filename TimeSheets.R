@@ -6,6 +6,7 @@ require(openxlsx)
 require(dplyr)
 require(rpivotTable)
 
+
 x<<- NULL
 
 run <- function(month, week) {
@@ -15,6 +16,7 @@ run <- function(month, week) {
   files <- list.files(path = folder)
   x<<- NULL
   for (f in files) {
+    message(f)
     filePath <- paste(folder, f, sep = "/")
     d <-  read.xlsx(filePath, detectDates = TRUE)
     x <<- rbind( x,d)
@@ -29,17 +31,24 @@ run <- function(month, week) {
       "Task_Type",
       "Date",
       "WeekDay",
-      "Hours"
+      "Hours",
+      "Notes"  
     )
-  GroupByEmp <<- aggregate(Hours ~ EmpName  , x , sum)
+  
+  x2 <<- filter(x,Task_Type !="إجازة"  )
+  x2 <<- filter(x2,Task_Type !="إستئذان")
+  
+  GroupByEmp <<- aggregate(Hours ~ EmpName  , x2 , sum)
   GroupByWeekDay <<-
-    aggregate(Hours ~ EmpName + WeekDay  , x , sum)
+    aggregate(Hours ~ EmpName + Date  , x2 , sum)
   GroupByType <<-
-    aggregate(Hours ~ EmpName + Task_Type  , x , sum)
-  GroupByDate <<- aggregate(Hours ~ Date  , x , sum)
-  AvaragePerHours <<- aggregate(Hours ~ EmpName   , x , mean)
-  TasksPerProject <<- aggregate(EmpName ~ CR_Proj   , x , length)
-  HoursPerDay <<- aggregate(Hours ~ Date , x , sum)
+    aggregate(Hours ~ EmpName + Task_Type  , x2 , sum)
+  GroupByDate <<- aggregate(Hours ~ Date  , x2 , sum)
+  AvaragePerHours <<- aggregate(Hours ~ EmpName   , x2 , mean)
+  TasksPerProject <<- aggregate(EmpName ~ CR_Proj   , x2 , length)
+  TasksPerSystem <<- aggregate(EmpName ~ System   , x2 , length)
+  HoursPerDay <<- aggregate(Hours ~ Date , x2 , sum)
+  Over8HoursPerDay <<- filter(GroupByWeekDay, Hours > 7)
   #tasks <<- x[,c(x$EmpName)]
   
   pie(
@@ -56,6 +65,41 @@ run <- function(month, week) {
   
 } 
 
+Validate <- function ()
+{
+  if (is.null(x))
+  {
+    message("Please call Run function first.")
+    returnValue()
+  }
+  
+  #Check Task Types
+  InvalidTaskTypes <-  filter( x2 ,  !Task_Type %in% 
+             c("مشروع"
+               ,"تشغيل"
+               ,"دراسة"
+              ,"إستئذان"
+               ,"إجازة"
+               ))
+  
+  
+  
+  
+}
+
+ValidateDates <- function (startDate , endDate)
+{
+  if (is.null(x))
+  {
+    message("Please call Run function first.")
+    returnValue()
+  }
+  
+  invalid_Dates <<-  filter(x, Date < StartDate , Date > endDate)
+}
+
+
+#Generate charts 
 chart <- function(c)
 {
   if (is.null(x))
@@ -110,11 +154,31 @@ chart <- function(c)
         aggregatorName = "Sum"
       )
     }
-    
+    ,
+    "6" = {
+      rpivotTable(
+        x[1:9],
+        rows = c("EmpName", "Task") ,
+        vals = "Hours",
+        aggregatorName = "Sum"
+      )
+    }
+    , "7" = {
+      x$Task_Type <- as.factor(x$Task_Type)
+      for (tt in levels(x$Task_Type)) {
+        
+        pie(x[,x$Task_Type==tt])
+        
+        
+      }
+      
+    }
   )
   
 }
-Export = function()
+Export = function(month , week)
 {
-  write.csv(x, paste(folder, "Exported","timeSheet.csv" , sep = "/"))
+  run(month,week)
+  fileName <- paste("timeSheet",month,"W",week,".xlsx", sep = "_")
+  write.xlsx(x, fileName)
 }
