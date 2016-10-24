@@ -23,21 +23,31 @@ run <- function(month, week) {
   }
   colnames(x) <<-
     c(
+      "DepartmentName",
       "EmpName",
-      "Task",
-      "System",
-      "CR_Proj",
-      "TFSID",
-      "Task_Type",
       "Date",
       "WeekDay",
-      "Hours",
-      "Notes"  
+      "Task_Type",
+      "Task",
+      "TaskDetail",
+      "System",
+      "CR_Proj",
+      "Client",
+      "TFSID",
+      "HoursPerDay",
+      "TaskStartHour",
+      "TaskEndHour",
+      "TaskWorkingHours",
+      "VacationHours",
+      "Approved",
+      "AdminEmployee",
+      "Notes",
+      "Hours"
     )
   
   x2 <<- filter(x,Task_Type !="إجازة"  )
   x2 <<- filter(x2,Task_Type !="إستئذان")
-  
+  #x2 <<-x 
   GroupByEmp <<- aggregate(Hours ~ EmpName  , x2 , sum)
   GroupByWeekDay <<-
     aggregate(Hours ~ EmpName + Date  , x2 , sum)
@@ -50,13 +60,16 @@ run <- function(month, week) {
   HoursPerDay <<- aggregate(Hours ~ Date , x2 , sum)
   Over8HoursPerDay <<- filter(GroupByWeekDay, Hours > 7)
   #tasks <<- x[,c(x$EmpName)]
-  
-  pie(
+  dev.new()
+  plot(
+    GroupByEmp$EmpName,
     GroupByEmp$Hours,
-    labels = GroupByEmp$Hours,
+    
+    labels = GroupByEmp$EmpName,
     col = rainbow(length(GroupByEmp$EmpName)),
     main = "Total Hours per Employee"
   )
+  text(GroupByEmp$Hours , row.names(GroupByEmp), cex=0.6, pos=4, col="red")
   legend("bottomleft",
          legend =  GroupByEmp$EmpName, cex = 0.7,
          fill = rainbow(length(GroupByEmp$EmpName)))
@@ -182,3 +195,4 @@ Export = function(month , week)
   fileName <- paste("timeSheet",month,"W",week,".xlsx", sep = "_")
   write.xlsx(x, fileName)
 }
+
